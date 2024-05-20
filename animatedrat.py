@@ -69,7 +69,7 @@ def mk_video(work_dir: pathlib.Path, video_file: pathlib.Path) -> None:
   pngfiles = work_dir.joinpath('dlayer-*.png')
 
   in_args = f'-y -framerate 10 -pattern_type glob -i {pngfiles}'.split()
-  ou_args = '-c:v libx264 -pix_fmt yuv420p -vf scale=800:600'.split()
+  ou_args = '-c:v libx264 -pix_fmt yuv420p -vf scale=800:400'.split()
   cmd = [FFMPEG, *in_args, *ou_args, str(tmp_file)]
 
   logging.info('Writing ffmpeg output in %s', logfile)
