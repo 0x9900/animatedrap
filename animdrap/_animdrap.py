@@ -65,7 +65,7 @@ def select_files(source: pathlib.Path, work_dir: pathlib.Path, hours: int) -> No
 
 def mk_video(work_dir: pathlib.Path, video_file: pathlib.Path) -> None:
   logfile = pathlib.Path('/tmp/ffmpeg-drap.log')
-  tmp_file = work_dir.joinpath(f'd-rat-{os.getpid()}.mp4')
+  tmp_file = work_dir.joinpath(f'd-rap-{os.getpid()}.mp4')
   pngfiles = work_dir.joinpath('dlayer-*.png')
 
   in_args = f'-y -framerate 6 -pattern_type glob -i {pngfiles}'.split()
