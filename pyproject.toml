@@ -48,6 +48,7 @@ dev = [
 
 [project.scripts]
   animatedrap = "animdrap:main"
+  purge_drap = "animdrap.purge_drap:main"
 
 [tool.setuptools.packages.find]
     include = ["animdrap*"]
