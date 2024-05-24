@@ -20,8 +20,16 @@ import shutil
 import sys
 from datetime import datetime, timedelta, timezone
 from subprocess import PIPE, Popen
+from typing import Iterator
 
-WORKDIR_NAME = 'workdir'
+WORKDIR_NAME = '-workdir'
+
+
+def counter(start: int = 1) -> Iterator[str]:
+  cnt = start
+  while True:
+    yield f'{cnt:06d}'
+    cnt += 1
 
 
 def cleanup(path: pathlib.Path) -> None:
@@ -48,6 +56,7 @@ def type_path(arg: str) -> pathlib.Path:
 
 
 def select_files(source: pathlib.Path, work_dir: pathlib.Path, hours: int) -> None:
+  count = counter()
   re_date = re.compile(r'.*dlayer-(\d+).png').match
   start = datetime.now(timezone.utc) - timedelta(hours=hours)
   for fname in sorted(source.glob('dlayer-*.png')):
@@ -57,9 +66,9 @@ def select_files(source: pathlib.Path, work_dir: pathlib.Path, hours: int) -> No
     date = datetime.strptime(match.group(1), '%Y%m%d%H%M')
     date = date.replace(tzinfo=timezone.utc)
     if date >= start:
-      workfile = work_dir.joinpath(fname.name)
-      logging.debug('Selecting %s -> %s', fname, workfile)
+      workfile = work_dir.joinpath(f'dlayer-{next(count)}.png')
       workfile.hardlink_to(fname)
+      logging.debug('Selecting %s -> %s', fname, workfile)
 
 
 def mk_video(work_dir: pathlib.Path, video_file: pathlib.Path) -> None:
