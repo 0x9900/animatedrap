@@ -22,7 +22,6 @@ from datetime import datetime, timedelta, timezone
 from subprocess import PIPE, Popen
 
 WORKDIR_NAME = 'workdir'
-FFMPEG = shutil.which('ffmpeg')
 
 
 def cleanup(path: pathlib.Path) -> None:
@@ -64,13 +63,19 @@ def select_files(source: pathlib.Path, work_dir: pathlib.Path, hours: int) -> No
 
 
 def mk_video(work_dir: pathlib.Path, video_file: pathlib.Path) -> None:
+  ffmpeg = shutil.which('ffmpeg')
+  if not ffmpeg:
+    raise FileNotFoundError('ffmpeg not found')
+
   logfile = pathlib.Path('/tmp/ffmpeg-drap.log')
   tmp_file = work_dir.joinpath(f'd-rap-{os.getpid()}.mp4')
   pngfiles = work_dir.joinpath('dlayer-*.png')
 
   in_args = f'-y -framerate 6 -pattern_type glob -i {pngfiles}'.split()
   ou_args = '-c:v libx264 -pix_fmt yuv420p -vf scale=800:400'.split()
-  cmd = [FFMPEG, *in_args, *ou_args, str(tmp_file)]
+  cmd = [ffmpeg, *in_args, *ou_args, str(tmp_file)]
+
+  logging.debug(' '.join(cmd))
 
   logging.info('Writing ffmpeg output in %s', logfile)
   logging.info("Saving %s video file", tmp_file)
@@ -100,7 +105,7 @@ def main() -> None:
   parser = argparse.ArgumentParser(description="Animate the d-rap files created by sunflu/dlayer")
   parser.add_argument('-H', '--hours', default=48, type=int,
                       help='Number of hours to animate (Default: %(default)s)')
-  parser.add_argument('-s', '--source', default='/tmp/d-rap', type=type_path,
+  parser.add_argument('-s', '--source', required=True, type=type_path,
                       help='Name of the videofile to geneate (Default: %(default)s)')
   parser.add_argument('-t', '--target', default='/tmp/dlayer.mp4',
                       help='Name of the videofile to geneate (Default: %(default)s)')

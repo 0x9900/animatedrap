@@ -47,7 +47,7 @@ dev = [
   Tracker = "https://github.com/0x9900/animatedrap/issues"
 
 [project.scripts]
-  animatedrap = "animdrap:main"
+  animatedrap = "animdrap.animdrap:main"
   purge_drap = "animdrap.purge_drap:main"
 
 [tool.setuptools.packages.find]
