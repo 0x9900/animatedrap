@@ -20,12 +20,12 @@ from datetime import datetime, timedelta, timezone
 
 def purge_files(src_path, hours):
   start_date = datetime.now(timezone.utc) - timedelta(hours=hours)
-  re_date = re.compile(r'^dlayer-(\d+).\w+').match
+  re_date = re.compile(r'^dlayer-(\d+T\d+).\w+').match
 
   for path in src_path.iterdir():
     if not (re_match := re_date(path.name)):
       continue
-    date = datetime.strptime(re_match.group(1), '%Y%m%d%H%M')
+    date = datetime.strptime(re_match.group(1), '%Y%m%dT%H%M%S')
     date = date.replace(tzinfo=timezone.utc)
     if date >= start_date:
       logging.debug('Keep file: %s', path)

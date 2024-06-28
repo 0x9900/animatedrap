@@ -57,13 +57,13 @@ def type_path(arg: str) -> pathlib.Path:
 
 def select_files(source: pathlib.Path, work_dir: pathlib.Path, hours: int) -> None:
   count = counter()
-  re_date = re.compile(r'.*dlayer-(\d+).png').match
+  re_date = re.compile(r'.*dlayer-(\d+T\d+).png').match
   start = datetime.now(timezone.utc) - timedelta(hours=hours)
   for fname in sorted(source.glob('dlayer-*.png')):
     match = re_date(str(fname))
     if not match:
       continue
-    date = datetime.strptime(match.group(1), '%Y%m%d%H%M')
+    date = datetime.strptime(match.group(1), '%Y%m%dT%H%M%S')
     date = date.replace(tzinfo=timezone.utc)
     if date >= start:
       workfile = work_dir.joinpath(f'dlayer-{next(count)}.png')
