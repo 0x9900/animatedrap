@@ -18,9 +18,9 @@ import sys
 from datetime import datetime, timedelta, timezone
 
 
-def purge_files(src_path, hours):
+def purge_files(src_path: pathlib.Path, hours: int) -> None:
   start_date = datetime.now(timezone.utc) - timedelta(hours=hours)
-  re_date = re.compile(r'^dlayer-(\d+T\d+).\w+').match
+  re_date = re.compile(r'^dlayer-(\d+T\d+)(|-light|-dark).\w+').match
 
   for path in src_path.iterdir():
     if not (re_match := re_date(path.name)):
