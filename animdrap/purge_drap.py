@@ -18,7 +18,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 
 
-def purge_files(src_path: pathlib.Path, hours: int) -> None:
+def purge_files(src_path: pathlib.Path, hours: int, dry_run: bool = False) -> None:
   start_date = datetime.now(timezone.utc) - timedelta(hours=hours)
   re_date = re.compile(r'^dlayer-(\d+T\d+)(|-light|-dark).\w+').match
 
@@ -29,6 +29,9 @@ def purge_files(src_path: pathlib.Path, hours: int) -> None:
     date = date.replace(tzinfo=timezone.utc)
     if date >= start_date:
       logging.debug('Keep file: %s', path)
+      continue
+    if dry_run:
+      logging.info('File "%s" will be purged', path)
       continue
     logging.info('Purge file %s', path)
     path.unlink()
@@ -49,6 +52,8 @@ def main() -> None:
     filename=log_file
   )
   parser = argparse.ArgumentParser(description="purge d-rap files created by sunflu/dlayer")
+  parser.add_argument('-n', '--dry-run', action="store_true", default=False,
+                      help="Do not delete any file (dry run)")
   parser.add_argument('-H', '--hours', default=48, type=int,
                       help='Number of hours to animate (Default: %(default)s)')
   parser.add_argument('-s', '--source', default='/tmp/d-rap', type=type_path,
@@ -57,7 +62,7 @@ def main() -> None:
   opts = parser.parse_args()
 
   logging.info('Removeing files older than %d hours from %s', opts.hours, opts.source)
-  purge_files(opts.source, opts.hours)
+  purge_files(opts.source, opts.hours, opts.dry_run)
 
 
 if __name__ == "__main__":
