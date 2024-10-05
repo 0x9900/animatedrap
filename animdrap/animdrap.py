@@ -48,16 +48,9 @@ def mk_workdir(source: pathlib.Path) -> pathlib.Path:
   return path
 
 
-def type_path(arg: str) -> pathlib.Path:
-  path = pathlib.Path(arg)
-  if not path.is_dir():
-    raise argparse.ArgumentTypeError(f'Error reading "{arg}"')
-  return path
-
-
-def select_files(source: pathlib.Path, work_dir: pathlib.Path, hours: int) -> None:
+def select_files(source: pathlib.Path, style: str, work_dir: pathlib.Path, hours: int) -> None:
   count = counter()
-  re_date = re.compile(r'.*dlayer-(\d+T\d+).png').match
+  re_date = re.compile(rf'.*dlayer-(\d+T\d+)-{style}.png').match
   start = datetime.now(timezone.utc) - timedelta(hours=hours)
   for fname in sorted(source.glob('dlayer-*.png')):
     match = re_date(str(fname))
@@ -101,6 +94,13 @@ def mk_video(work_dir: pathlib.Path, video_file: pathlib.Path) -> None:
     tmp_file.rename(video_file)
 
 
+def mk_link(src, dst):
+  if dst.exists():
+    dst.unlink()
+  os.link(src, dst)
+  logging.info('Link %s ->  %s', src, dst)
+
+
 def main() -> None:
 
   log_file = None if os.isatty(sys.stdout.fileno()) else '/tmp/animdrap.log'
@@ -111,20 +111,24 @@ def main() -> None:
     filename=log_file
   )
 
-  parser = argparse.ArgumentParser(description="Animate the d-rap files created by sunflu/dlayer")
+  parser = argparse.ArgumentParser(description="Animate the d-rap files created by sunflux/dlayer")
   parser.add_argument('-H', '--hours', default=48, type=int,
                       help='Number of hours to animate (Default: %(default)s)')
-  parser.add_argument('-s', '--source', required=True, type=type_path,
+  parser.add_argument('-s', '--source', required=True, type=pathlib.Path,
                       help='Name of the videofile to geneate (Default: %(default)s)')
-  parser.add_argument('-t', '--target', default='/tmp/dlayer.mp4',
+  parser.add_argument('-t', '--target_dir', type=pathlib.Path, default='/tmp',
                       help='Name of the videofile to geneate (Default: %(default)s)')
   opts = parser.parse_args()
 
-  work_dir = mk_workdir(opts.source)
-  atexit.register(cleanup, work_dir)
-  select_files(opts.source, work_dir, opts.hours)
-  mk_video(work_dir, opts.target)
-  cleanup(work_dir)
+  for style in ('light', 'dark'):
+    work_dir = mk_workdir(opts.source)
+    atexit.register(cleanup, work_dir)
+    select_files(opts.source, style, work_dir, opts.hours)
+    target_file = opts.target_dir.joinpath(f'dlayer-{style}').with_suffix('.mp4')
+    mk_video(work_dir, target_file)
+    if style == 'light':
+      mk_link(target_file, target_file.parent.joinpath('dlayer.mp4'))
+    cleanup(work_dir)
 
 
 if __name__ == "__main__":
