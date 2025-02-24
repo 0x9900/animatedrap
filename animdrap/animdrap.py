@@ -11,7 +11,6 @@ See the solar activity website @ https://bsdworld.org/
 """
 
 import argparse
-import atexit
 import logging
 import os
 import pathlib
@@ -20,9 +19,26 @@ import shutil
 import sys
 from datetime import datetime, timedelta, timezone
 from subprocess import PIPE, Popen
-from typing import Iterator
+from typing import Iterator, Optional, Type
 
 WORKDIR_NAME = '-workdir'
+
+
+class Workdir:
+  def __init__(self, source: pathlib.Path) -> None:
+    self.workdir = source.joinpath('_workdir')
+
+  def __enter__(self) -> pathlib.Path:
+    try:
+      self.workdir.mkdir()
+      return self.workdir
+    except IOError as err:
+      raise err
+
+  def __exit__(self, exc_type: Optional[Type[BaseException]],
+               exc_value: Optional[BaseException],
+               traceback: Optional[Type[BaseException]]) -> None:
+    shutil.rmtree(self.workdir)
 
 
 def counter(start: int = 1) -> Iterator[str]:
@@ -30,22 +46,6 @@ def counter(start: int = 1) -> Iterator[str]:
   while True:
     yield f'{cnt:06d}'
     cnt += 1
-
-
-def cleanup(path: pathlib.Path) -> None:
-  """Remove the working directory"""
-  if not path.exists():
-    return
-  logging.info('Cleanup %s', path)
-  for fname in path.glob('*'):
-    fname.unlink()
-  path.rmdir()
-
-
-def mk_workdir(source: pathlib.Path) -> pathlib.Path:
-  path = source.joinpath(WORKDIR_NAME)
-  path.mkdir()
-  return path
 
 
 def select_files(source: pathlib.Path, style: str, work_dir: pathlib.Path, hours: int) -> None:
@@ -94,10 +94,10 @@ def mk_video(work_dir: pathlib.Path, video_file: pathlib.Path) -> None:
     tmp_file.rename(video_file)
 
 
-def mk_link(src, dst):
+def mk_link(src: pathlib.Path, dst: pathlib.Path):
   if dst.exists():
     dst.unlink()
-  os.link(src, dst)
+  dst.hardlink_to(src)
   logging.info('Link %s ->  %s', src, dst)
 
 
@@ -119,16 +119,19 @@ def main() -> None:
   parser.add_argument('-t', '--target_dir', type=pathlib.Path, default='/tmp',
                       help='Name of the videofile to geneate (Default: %(default)s)')
   opts = parser.parse_args()
+  logging.warning('animdrap start: %s', datetime.now().strftime('%x %X'))
+  try:
+    for style in ('light', 'dark'):
+      with Workdir(opts.source) as work_dir:
+        select_files(opts.source, style, work_dir, opts.hours)
+        target_file = opts.target_dir.joinpath(f'dlayer-{style}').with_suffix('.mp4')
+        mk_video(work_dir, target_file)
+        if style == 'light':
+          mk_link(target_file, target_file.parent.joinpath('dlayer.mp4'))
+  except FileNotFoundError as err:
+    logging.error(err)
 
-  for style in ('light', 'dark'):
-    work_dir = mk_workdir(opts.source)
-    atexit.register(cleanup, work_dir)
-    select_files(opts.source, style, work_dir, opts.hours)
-    target_file = opts.target_dir.joinpath(f'dlayer-{style}').with_suffix('.mp4')
-    mk_video(work_dir, target_file)
-    if style == 'light':
-      mk_link(target_file, target_file.parent.joinpath('dlayer.mp4'))
-    cleanup(work_dir)
+  logging.warning('animdrap start: %s', datetime.now().strftime('%x %X'))
 
 
 if __name__ == "__main__":
