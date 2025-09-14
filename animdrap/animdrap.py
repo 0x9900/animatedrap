@@ -26,7 +26,7 @@ WORKDIR_NAME = '-workdir'
 
 class Workdir:
   def __init__(self, source: pathlib.Path) -> None:
-    self.workdir = source.joinpath('_workdir')
+    self.workdir = source / '_workdir'
 
   def __enter__(self) -> pathlib.Path:
     try:
@@ -59,7 +59,7 @@ def select_files(source: pathlib.Path, style: str, work_dir: pathlib.Path, hours
     date = datetime.strptime(match.group(1), '%Y%m%dT%H%M%S')
     date = date.replace(tzinfo=timezone.utc)
     if date >= start:
-      workfile = work_dir.joinpath(f'dlayer-{next(count)}.png')
+      workfile = work_dir / f'dlayer-{next(count)}.png'
       workfile.hardlink_to(fname)
       logging.debug('Selecting %s -> %s', fname, workfile)
 
@@ -70,8 +70,8 @@ def mk_video(work_dir: pathlib.Path, video_file: pathlib.Path) -> None:
     raise FileNotFoundError('ffmpeg not found')
 
   logfile = pathlib.Path('/tmp/ffmpeg-drap.log')
-  tmp_file = work_dir.joinpath(f'd-rap-{os.getpid()}.mp4')
-  pngfiles = work_dir.joinpath('dlayer-*.png')
+  tmp_file = work_dir / f'd-rap-{os.getpid()}.mp4'
+  pngfiles = work_dir / 'dlayer-*.png'
 
   in_args = f'-y -framerate 6 -pattern_type glob -i {pngfiles}'.split()
   ou_args = '-c:v libx264 -pix_fmt yuv420p -vf scale=800:400'.split()
@@ -119,19 +119,20 @@ def main() -> None:
   parser.add_argument('-t', '--target_dir', type=pathlib.Path, default='/tmp',
                       help='Name of the videofile to geneate (Default: %(default)s)')
   opts = parser.parse_args()
-  logging.warning('animdrap start: %s', datetime.now().strftime('%x %X'))
+
+  logging.warning('Start')
   try:
     for style in ('light', 'dark'):
       with Workdir(opts.source) as work_dir:
         select_files(opts.source, style, work_dir, opts.hours)
-        target_file = opts.target_dir.joinpath(f'dlayer-{style}').with_suffix('.mp4')
+        target_file = opts.target_dir / f'dlayer-{style}.mp4'
         mk_video(work_dir, target_file)
         if style == 'light':
-          mk_link(target_file, target_file.parent.joinpath('dlayer.mp4'))
+          mk_link(target_file, target_file.parent / 'dlayer.mp4')
   except FileNotFoundError as err:
     logging.error(err)
 
-  logging.warning('animdrap start: %s', datetime.now().strftime('%x %X'))
+  logging.warning('Stop')
 
 
 if __name__ == "__main__":
