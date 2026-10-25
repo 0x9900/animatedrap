@@ -3,11 +3,11 @@
   requires = ["setuptools", "setuptools_scm[toml]", "wheel"]
 
 [project]
+  version = "0.1.2"
   name = "animatedrap"
   readme = "README.md"
   description = "Log contact made on fldigi to MacLoggerDX."
   license = {file = "LICENSE"}
-  dynamic = ["version"]
   requires-python = ">=3.10"
   authors = [
     { name = "Fred C. (W6BSD)" },
@@ -28,9 +28,6 @@
 
 [tool.setuptools]
     include-package-data = true
-
-[tool.setuptools_scm]
-    write_to = "animdrap/_version.py"
 
 [project.optional-dependencies]
 dev = [
